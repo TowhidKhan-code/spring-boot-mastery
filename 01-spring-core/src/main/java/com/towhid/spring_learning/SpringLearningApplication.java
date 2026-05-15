@@ -15,6 +15,11 @@ import com.towhid.spring_learning.day02.scope.ShoppingCart;
 import com.towhid.spring_learning.day03.properties.DatabaseProperties;
 import com.towhid.spring_learning.day03.properties.EmailProperties;
 import com.towhid.spring_learning.day03.service.ConfigDashboardService;
+import com.towhid.spring_learning.day04.autowiring.ServiceA;
+import com.towhid.spring_learning.day04.config.ConnectionPool;
+import com.towhid.spring_learning.day04.config.ResourceManager;
+import com.towhid.spring_learning.day04.autowiring.AutowiringDemo;
+import com.towhid.spring_learning.day04.service.BankService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
@@ -170,5 +175,45 @@ public class SpringLearningApplication {
 
 		ProfileNotificationService profileNotificationService = context.getBean(ProfileNotificationService.class);
 		profileNotificationService.sendNotification("Server restarted!");
+
+		System.out.println("\n===== DAY 4: Java Configuration =====");
+
+		String appNamee = context.getBean("applicationName",String.class);
+		System.out.println("App Name: " + appNamee);
+
+		ConnectionPool pool = context.getBean(ConnectionPool.class);
+		System.out.println("Pool Active: " + pool.isActive());
+
+		ResourceManager rm = context.getBean(ResourceManager.class);
+		System.out.println("Resource Manager: " + rm.isInitialized());
+
+		System.out.println("\n===== DAY 4: Autowiring =====");
+		AutowiringDemo demo = context.getBean(AutowiringDemo.class);
+		demo.demonstrateAutowiring();
+
+		ServiceA serviceA = context.getBean(ServiceA.class);
+		System.out.println("\nCircular Dependency solved:");
+		System.out.println(serviceA.doSomething());
+
+		System.out.println("\n===== DAY 4: AOP =====");
+
+		BankService bankService = context.getBean(BankService.class);
+
+		System.out.println("\n--- Test 1: Deposit ---");
+		String depositResult = bankService.deposit("ACC001", 500.0);
+		System.out.println("Result: " + depositResult);
+
+		System.out.println("\n--- Test 2: Get Balance ---");
+		double balance = bankService.getBalance("ACC001");
+		System.out.println("Balance: $" + balance);
+
+		System.out.println("\n--- Test 3: Exception ---");
+		try {
+			bankService.transfer("ACCO1","ACC02",9999.9);
+
+			bankService.withdraw("ACC001", 99999.0);
+		} catch (Exception e) {
+			System.out.println("Caught: " + e.getMessage());
+		}
 	}
 }
