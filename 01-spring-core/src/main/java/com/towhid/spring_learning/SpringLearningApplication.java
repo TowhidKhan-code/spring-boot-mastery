@@ -20,6 +20,10 @@ import com.towhid.spring_learning.day04.config.ConnectionPool;
 import com.towhid.spring_learning.day04.config.ResourceManager;
 import com.towhid.spring_learning.day04.autowiring.AutowiringDemo;
 import com.towhid.spring_learning.day04.service.BankService;
+import com.towhid.spring_learning.day05.spel.config.SpelConfig;
+import com.towhid.spring_learning.day05.spel.service.SpelBeanReferenceDemo;
+import com.towhid.spring_learning.day05.spel.service.SpelCollectionDemo;
+import com.towhid.spring_learning.day05.spel.service.SpelProgrammaticDemo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
@@ -29,8 +33,6 @@ import org.springframework.web.client.RestTemplate;
 public class SpringLearningApplication {
 
 	public static void main(String[] args) {
-
-		//DAY 1
 
 		// This creates the IoC Container and returns it
 		ApplicationContext context =
@@ -215,5 +217,21 @@ public class SpringLearningApplication {
 		} catch (Exception e) {
 			System.out.println("Caught: " + e.getMessage());
 		}
+
+		// ===== DAY 5: SpEL =====
+		System.out.println("\n===== DAY 5: Spring Expression Language =====");
+
+
+		SpelConfig spelConfig = context.getBean(SpelConfig.class);
+		spelConfig.displayAll();
+
+		SpelBeanReferenceDemo beanRef = context.getBean(SpelBeanReferenceDemo.class);
+		beanRef.display();
+
+		SpelCollectionDemo collDemo = context.getBean(SpelCollectionDemo.class);
+		collDemo.display();
+
+		SpelProgrammaticDemo progDemo = context.getBean(SpelProgrammaticDemo.class);
+		progDemo.demonstrate();
 	}
 }
