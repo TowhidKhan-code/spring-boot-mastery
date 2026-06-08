@@ -24,3 +24,9 @@ CREATE TABLE IF NOT EXISTS students (
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     -- automatically saves when record was created
     );
+
+CREATE TABLE IF NOT EXISTS courses (
+                         id   INT PRIMARY KEY AUTO_INCREMENT,
+                         name VARCHAR(100),
+                         duration_weeks INT
+);

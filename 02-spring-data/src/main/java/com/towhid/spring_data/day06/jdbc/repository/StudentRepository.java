@@ -35,4 +35,8 @@ public interface StudentRepository {
     // COUNT
     int count();
     // total number of students
+
+    List<Student> findByGradeGreaterThan(Double grade);
+
+    Student updateGrade(Integer id, Double newGrade);
 }

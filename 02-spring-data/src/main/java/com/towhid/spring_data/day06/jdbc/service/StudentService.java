@@ -34,6 +34,8 @@ public class StudentService {
             throw new IllegalArgumentException("Invalid email");
         }
 
+
+
         // Create Student object (no id yet)
         Student student = new Student(name, email, age, course, grade);
 
@@ -122,5 +124,13 @@ public class StudentService {
     public void printStats() {
         int total = studentRepository.count();
         System.out.println("📊 Total students in DB: " + total);
+    }
+
+    public List<Student> getGradeGreaterThan(Double grade){
+        return studentRepository.findByGradeGreaterThan(grade);
+    }
+
+    public Student updateGrade(Integer id,Double newGrade){
+        return studentRepository.updateGrade(id,newGrade);
     }
 }

@@ -1,6 +1,8 @@
 package com.towhid.spring_data;
 
+import com.towhid.spring_data.day06.jdbc.model.Course;
 import com.towhid.spring_data.day06.jdbc.model.Student;
+import com.towhid.spring_data.day06.jdbc.service.CourseService;
 import com.towhid.spring_data.day06.jdbc.service.StudentService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -107,5 +109,66 @@ public class SpringDataApplication {
 			System.out.println("✅ Caught expected error: "
 					+ e.getMessage());
 		}
+
+		// DAY 6 - PRACTICE TASK
+
+		// 1 - Add a new method findByGradeGreaterThan(Double grade) in repository and service
+		// that returns all students with grade above a given value.
+        List<Student> gradeGreaterThan = service.getGradeGreaterThan(8.0);
+        gradeGreaterThan.forEach(s -> System.out.println(
+                "  [" + s.getId() + "] " +
+                        s.getName() + " | " +
+                        s.getCourse() + " | Grade: " +
+                        s.getGrade()
+        ));
+
+		// 2 - Add a method updateGrade(Integer id, Double newGrade) that:
+		// - Checks student exists
+		// - Only updates the grade column (not all fields)
+		// - Returns updated student
+		Student updatedGrade = service.updateGrade(1,9.9);
+		System.out.println("  [" + updatedGrade.getId() + "] " +
+				updatedGrade.getName() + " | " +
+				updatedGrade.getCourse() + " | Grade: " +
+				updatedGrade.getGrade() );
+
+		// 3 - Create a completely new Course table:
+		// With its own CourseRepository and CourseService — full CRUD.
+		CourseService courseService = context.getBean(CourseService.class);
+		Course c1 = courseService.createCourse("Spring Boot",5);
+		Course c2 = courseService.createCourse("JAVA",8);
+		Course c3 = courseService.createCourse("PYTHON",6);
+		Course c4 = courseService.createCourse("MYSQL",4);
+
+		List<Course> allCourse = courseService.getAllCourses();
+		allCourse.forEach(c -> System.out.println("  [" + c.getId() + "] " +
+				c.getName() + " | " + c.getDurationWeeks()));
+
+		Course found2 = courseService.getCourseById(c1.getId());
+		System.out.println("Found: " + found2);
+
+		List<Course> courseDuration =
+				courseService.getCourseWithDurations(6);
+		courseDuration.forEach(s ->
+				System.out.println("  → " + s.getName())
+		);
+
+		Course found3 = courseService.getCourseByName("MYSQL");
+		System.out.println("Found course with name: " + found3);
+
+		courseService.updateCourse(s1.getId(), "SPRING BOOT ADVANCED",6);
+		Course updated2 = courseService.getCourseById(c1.getId());
+		System.out.println("Updated: " + updated2);
+
+		courseService.deleteCourse(c3.getId());
+
+		courseService.printStats();
+
+		try{
+			Course found4 = courseService.getCourseById(999);
+		} catch (RuntimeException e) {
+			System.out.println("Caught expected error " + e.getMessage());
+		}
+
 	}
 }

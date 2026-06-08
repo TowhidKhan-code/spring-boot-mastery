@@ -7,6 +7,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import javax.swing.text.html.Option;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -199,5 +200,24 @@ public class StudentRepositoryImpl implements StudentRepository {
         // no RowMapper needed for single values
         return jdbcTemplate.queryForObject(sql, Integer.class);
         // Integer.class = return type we expect
+    }
+
+
+    public List<Student> findByGradeGreaterThan(Double grade){
+        String sql = "SELECT * FROM students WHERE grade > ?";
+        return jdbcTemplate.query(sql,studentRowMapper,grade);
+    }
+
+    public Student updateGrade(Integer id,Double newGrade){
+       String sql = "SELECT * FROM students WHERE id = ? ";
+       Student student = jdbcTemplate.queryForObject(sql,studentRowMapper,id);
+       student.setGrade(newGrade);
+
+       jdbcTemplate.update(
+               "UPDATE students SET grade = ? WHERE id = ?",
+                     newGrade,//               student.getGrade(),
+                     id           //               student.getId()
+       );
+       return student;
     }
 }
