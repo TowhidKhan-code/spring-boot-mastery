@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 // JpaRepository<Entity, ID type>
 // Just by extending this interface Spring gives you:
@@ -109,4 +110,11 @@ public interface ProductRepository extends JpaRepository<Product,Integer> {
     @Query("SELECT p FROM Product p WHERE p.price < " +
             "(SELECT AVG(p2.price) FROM Product p2)")
     List<Product> findBelowAveragePrice();
+
+    // Load product WITH all its tags
+    @Query("SELECT p FROM Product p " +
+            "LEFT JOIN FETCH p.tags " +
+            "WHERE p.id = :id")
+    Optional<Product> findByIdWithTags(
+            @Param("id") Integer id);
 }

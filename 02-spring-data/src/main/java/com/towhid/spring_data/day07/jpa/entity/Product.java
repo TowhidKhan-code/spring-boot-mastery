@@ -1,13 +1,17 @@
 package com.towhid.spring_data.day07.jpa.entity;
 
+import com.towhid.spring_data.day08.relationships.entity.Tag;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 // @Entity tells JPA/Hibernate:
 // "This Java class is a database table"
@@ -22,6 +26,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Product {
 
     // @Id = this field is the PRIMARY KEY
@@ -30,6 +35,7 @@ public class Product {
     // @GeneratedValue = let DB auto-generate the value
     // GenerationType.IDENTITY = use MySQL AUTO_INCREMENT
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Integer id;
 
     // @Column customizes the column
@@ -73,6 +79,21 @@ public class Product {
     @Column(name="updated_at")
     private LocalDateTime updatedAt;
 
+    @ManyToMany(
+            cascade = {
+                    CascadeType.MERGE,
+                    CascadeType.PERSIST
+            },
+            fetch = FetchType.LAZY
+    )
+    @JoinTable(
+            name = "products_tags",
+            joinColumns = @JoinColumn(name="product_id"),
+            inverseJoinColumns = @JoinColumn(name="tag_id")
+    )
+
+    private Set<Tag> tags = new HashSet<>();
+
     // Constructor without id and timestamps
     // Used when creating new product
     public Product(String name, String description,
@@ -83,5 +104,23 @@ public class Product {
         this.price = price;
         this.stockQuantity = stockQuantity;
         this.category = category;
+    }
+
+    public void addTag(Tag tag){
+        this.tags.add(tag);
+        tag.getProducts().add(this);
+    }
+
+    public void removeTag(Tag tag){
+        this.tags.remove(tag);
+        tag.getProducts().remove(this);
+    }
+
+    @Override
+    public String toString(){
+        return "Product{id=" + id
+                + ", name='" + name        // ← correct field
+                + "', price=" + price
+                + "}";
     }
 }

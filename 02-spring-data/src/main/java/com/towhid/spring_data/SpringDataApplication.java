@@ -9,6 +9,11 @@ import com.towhid.spring_data.day07.jpa.entity.Product;
 import com.towhid.spring_data.day07.jpa.repository.ProductRepository;
 import com.towhid.spring_data.day07.jpa.service.CategoryService;
 import com.towhid.spring_data.day07.jpa.service.ProductService;
+import com.towhid.spring_data.day08.relationships.entity.*;
+import com.towhid.spring_data.day08.relationships.service.BankTransferService;
+import com.towhid.spring_data.day08.relationships.service.EmployeeService;
+import com.towhid.spring_data.day08.relationships.service.OrderService;
+import com.towhid.spring_data.day08.relationships.service.ProductTagService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
@@ -316,7 +321,8 @@ public class SpringDataApplication {
 		// ─────────────────────────────────────────
 		// TASK 2: Create a new Entity Category:
 		// fields: id, name, description
-		// With full CRUD in repository and service using Spring Data JPA — no SQL written!
+		// With full CRUD in repository and service
+		// using Spring Data JPA — no SQL written!
 		// ─────────────────────────────────────────
 		System.out.println("\n--- TASK 2: Category CRUD ---");
 
@@ -395,21 +401,21 @@ public class SpringDataApplication {
 					"Books", "Duplicate test"
 			);
 		} catch (RuntimeException e) {
-			System.out.println("  ✅ Caught: " + e.getMessage());
+			System.out.println(" Caught: " + e.getMessage());
 		}
 
 		// Not found
 		try {
 			categoryService.getById(9999);
 		} catch (RuntimeException e) {
-			System.out.println("  ✅ Caught: " + e.getMessage());
+			System.out.println(" Caught: " + e.getMessage());
 		}
 
 		// Name not found
 		try {
 			categoryService.getByName("NonExistent");
 		} catch (RuntimeException e) {
-			System.out.println("  ✅ Caught: " + e.getMessage());
+			System.out.println(" Caught: " + e.getMessage());
 		}
 
 		// ─────────────────────────────────────────
@@ -422,7 +428,371 @@ public class SpringDataApplication {
 						"  → " + p.getName()
 								+ " | $" + p.getPrice()
 				));
+
+		// ===== DAY 8: JPA Relationships + Transactions =====
+		System.out.println("\n" + "=".repeat(50));
+		System.out.println("DAY 8 — JPA Relationships + Transactions");
+		System.out.println("=".repeat(50));
+
+		EmployeeService employeeService =
+				context.getBean(EmployeeService.class);
+		OrderService orderService =
+				context.getBean(OrderService.class);
+
+		// ── DEPARTMENT + EMPLOYEE (OneToMany) ──
+		System.out.println("\n--- DEPARTMENTS & EMPLOYEES ---");
+
+		Department engineering = employeeService
+				.createDepartment("Engineering", "Floor 3");
+		Department marketing = employeeService
+				.createDepartment("Marketing", "Floor 1");
+
+		employeeService.addEmployeeToDepartment(
+				engineering.getId(),
+				"Towhid Khan", "towhid@company.com",
+				"Senior Developer", 85000.0);
+		employeeService.addEmployeeToDepartment(
+				engineering.getId(),
+				"Alice Smith", "alice@company.com",
+				"Developer", 70000.0);
+		employeeService.addEmployeeToDepartment(
+				marketing.getId(),
+				"Bob Johnson", "bob@company.com",
+				"Marketing Manager", 75000.0);
+
+		// Print department with employees
+		Department engWithEmps = employeeService
+				.getDepartmentWithEmployees(engineering.getId());
+		System.out.println("\nDepartment: " + engWithEmps.getName());
+		engWithEmps.getEmployees().forEach(e ->
+				System.out.println("  → " + e));
+
+		// ── TRANSFER EMPLOYEE ──
+		System.out.println("\n--- TRANSFER EMPLOYEE ---");
+		Employee towhid = engWithEmps.getEmployees().get(0);
+		employeeService.transferEmployee(
+				towhid.getId(),
+				engineering.getId(),
+				marketing.getId());
+
+		// ── GIVE RAISE ──
+		System.out.println("\n--- GIVE 10% RAISE ---");
+		employeeService.giveRaiseToAllInDepartment(
+				engineering.getId(), 10.0);
+
+		// ── ROLLBACK DEMO ──
+		System.out.println("\n--- ROLLBACK DEMO ---");
+		try {
+			employeeService.demonstrateRollback(
+					engineering.getId());
+		} catch (RuntimeException e) {
+			System.out.println("Caught: " + e.getMessage());
+			System.out.println("Transaction rolled back!");
+		}
+
+		// ── ORDERS (Nested Relationships) ──
+		System.out.println("\n--- CUSTOMERS & ORDERS ---");
+
+		Customer customer1 = orderService.createCustomer(
+				"John Doe", "john@email.com", "555-0101");
+		Customer customer2 = orderService.createCustomer(
+				"Jane Smith", "jane@email.com", "555-0102");
+
+		// Place order with items
+		Order order1 = orderService.placeOrder(
+				customer1.getId(),
+				List.of(
+						new OrderItem("iPhone 15", 1, 999.99),
+						new OrderItem("Phone Case", 2, 19.99),
+						new OrderItem("Screen Protector", 1, 9.99)
+				));
+
+		Order order2 = orderService.placeOrder(
+				customer1.getId(),
+				List.of(
+						new OrderItem("MacBook Pro", 1, 1999.99)
+				));
+
+		Order order3 = orderService.placeOrder(
+				customer2.getId(),
+				List.of(
+						new OrderItem("Spring Boot Book", 2, 49.99)
+				));
+
+		// ── UPDATE ORDER STATUS ──
+		System.out.println("\n--- UPDATE ORDER STATUS ---");
+		orderService.updateOrderStatus(
+				order1.getId(),
+				Order.OrderStatus.CONFIRMED);
+		orderService.updateOrderStatus(
+				order1.getId(),
+				Order.OrderStatus.SHIPPED);
+
+		// ── CANCEL ORDER ──
+		System.out.println("\n--- CANCEL ORDER ---");
+		orderService.cancelOrder(order3.getId());
+
+		// ── GET CUSTOMER WITH ORDERS ──
+		System.out.println("\n--- CUSTOMER WITH ORDERS ---");
+		Customer c = orderService.getCustomerWithOrders(
+				customer1.getId());
+		System.out.println("Customer: " + c.getName());
+		System.out.println("Orders: " + c.getOrders().size());
+		c.getOrders().forEach(o ->
+				System.out.println("  → " + o));
+
+		// ── ORDERS BY STATUS ──
+		System.out.println("\n--- SHIPPED ORDERS ---");
+		orderService.getOrdersByStatus(Order.OrderStatus.SHIPPED)
+				.forEach(o -> System.out.println(
+						"  → " + o.getOrderNumber()
+								+ " $" + o.getTotalAmount()));
+
+		// ===== DAY 8: PRACTICE =====
+
+		// ─────────────────────────────────────────
+		// Task 1 - Add a method getHighEarners(Double minSalary)
+		// in EmployeeService that returns all employees
+		// earning above the given salary.
+		// Print their name, position and salary.
+		// ─────────────────────────────────────────
+
+		System.out.println("\n--- HIGH EARNERS (> $70000) ---");
+
+		List<Employee> highEarners = employeeService.getHighEarners(70000.0);
+
+		highEarners.forEach(e ->
+				System.out.println(
+						"  → " + e.getName()
+								+ " | " + e.getPosition()
+								+ " | $" + e.getSalary()
+				)
+		);
+
+		// ─────────────────────────────────────────
+		// Task 2 - Add a ManyToMany relationship:
+		//   - Create a Tag entity with id and name
+		//   - A Product (from Day 7) can have many Tags
+		//   - A Tag can belong to many Products
+		//   - Add method to tag a product
+		// ─────────────────────────────────────────
+
+
+		System.out.println("\n" + "=".repeat(50));
+		System.out.println("DAY 8 PRACTICE — Product ↔ Tag (ManyToMany)");
+		System.out.println("=".repeat(50));
+
+		ProductTagService tagService =
+				context.getBean(ProductTagService.class);
+
+		// Make sure you have some products
+		// If not, create them first:
+
+		// Create products if needed (from Day 7)
+		// If products already exist, skip this part
+		/*
+		productService.createProduct(
+			"iPhone 15", "Apple phone",
+			999.99, 50, "Electronics");
+		productService.createProduct(
+			"MacBook", "Apple laptop",
+			1999.99, 30, "Electronics");
+		productService.createProduct(
+			"Spring Book", "Learn Spring",
+			49.99, 100, "Books");
+		*/
+
+		// ── TAG PRODUCTS ──
+		System.out.println("\n--- Tagging Products ---");
+		tagService.tagProduct(1, "Electronics");
+		tagService.tagProduct(1, "Apple");
+		tagService.tagProduct(1, "Mobile");
+
+		tagService.tagProduct(2, "Electronics");
+		tagService.tagProduct(2, "Apple");
+		tagService.tagProduct(2, "Laptop");
+
+		tagService.tagProduct(3, "Books");
+		tagService.tagProduct(3, "Programming");
+
+		// ── DUPLICATE TAG (should skip) ──
+		System.out.println("\n--- Duplicate Tag Test ---");
+		tagService.tagProduct(1, "Apple");  // already tagged!
+
+		// ── VIEW PRODUCT TAGS ──
+		System.out.println("\n--- Product 1 Tags ---");
+		tagService.printProductTags(1);
+
+		System.out.println("\n--- Product 2 Tags ---");
+		tagService.printProductTags(2);
+
+		// ── VIEW PRODUCTS BY TAG ──
+		System.out.println("\n--- Products with 'Apple' tag ---");
+		tagService.printTagProducts("Apple");
+
+		System.out.println("\n--- Products with 'Electronics' tag ---");
+		tagService.printTagProducts("Electronics");
+
+		// ── REMOVE TAG ──
+		System.out.println("\n--- Remove 'Mobile' from Product 1 ---");
+		tagService.removeTag(1, "Mobile");
+		tagService.printProductTags(1);
+
+		// ── ERROR CASE ──
+		System.out.println("\n--- Error Cases ---");
+		try {
+			tagService.tagProduct(9999, "Test");
+		} catch (RuntimeException e) {
+			System.out.println("✅ Caught: " + e.getMessage());
+		}
+
+		try {
+			tagService.removeTag(1, "NonExistent");
+		} catch (RuntimeException e) {
+			System.out.println("✅ Caught: " + e.getMessage());
+		}
+
+		// ─────────────────────────────────────────
+		// Task 3 - Implement a BankTransferService with a
+		// 			method transfer(fromAccountId,
+		// 			toAccountId, amount) that:
+		//  - Deducts amount from one account
+		//  - Adds to another account
+		//  - Is fully @Transactional
+		//  - Throws exception if balance insufficient
+		//  - Proves rollback works if transfer fails midway
+		// ─────────────────────────────────────────
+
+		System.out.println("\n" + "=".repeat(50));
+		System.out.println("DAY 8 PRACTICE — Bank Transfer (Transactions)");
+		System.out.println("=".repeat(50));
+
+		BankTransferService bankService =
+				context.getBean(BankTransferService.class);
+
+		// ── CREATE ACCOUNTS ──
+		System.out.println("\n--- Creating Accounts ---");
+		Account alice = bankService.createAccount(
+				"ACC001", "Alice", 1000.0);
+		Account bob = bankService.createAccount(
+				"ACC002", "Bob", 500.0);
+		Account carol = bankService.createAccount(
+				"ACC003", "Carol", 750.0);
+
+		// ── PRINT INITIAL BALANCES ──
+		bankService.printBalances(
+				alice.getId(), bob.getId(), carol.getId());
+
+		// ── DEPOSIT ──
+		System.out.println("\n--- Deposit Test ---");
+		bankService.deposit(bob.getId(), 200.0);
+		bankService.printBalances(bob.getId());
+
+		// ── WITHDRAW ──
+		System.out.println("\n--- Withdraw Test ---");
+		bankService.withdraw(alice.getId(), 100.0);
+		bankService.printBalances(alice.getId());
+
+		// ── SUCCESSFUL TRANSFER ──
+		System.out.println("\n--- Successful Transfer ---");
+		System.out.println("Before transfer:");
+		bankService.printBalances(alice.getId(), bob.getId());
+
+		bankService.transfer(alice.getId(), bob.getId(), 200.0);
+
+		System.out.println("\nAfter transfer:");
+		bankService.printBalances(alice.getId(), bob.getId());
+
+		// ── INSUFFICIENT BALANCE ──
+		System.out.println("\n--- Insufficient Balance Test ---");
+		try {
+			bankService.transfer(alice.getId(), bob.getId(), 99999.0);
+		} catch (Exception e) {
+			System.out.println(" Caught: " + e.getMessage());
+		}
+
+		// Verify balances unchanged
+		System.out.println("Balances after failed transfer:");
+		bankService.printBalances(alice.getId(), bob.getId());
+
+		// ══════════════════════════════════════════════════
+		// ROLLBACK DEMO — Most Important Test!
+		// ══════════════════════════════════════════════════
+		System.out.println("\n" + "=".repeat(50));
+		System.out.println(" ROLLBACK DEMONSTRATION");
+		System.out.println("=".repeat(50));
+
+		System.out.println("\n BEFORE transfer with failure:");
+		bankService.printBalances(alice.getId(), carol.getId());
+
+		// Store original balances for comparison
+		Account aliceBefore = bankService.getAccount(alice.getId());
+		Account carolBefore = bankService.getAccount(carol.getId());
+		Double aliceOriginal = aliceBefore.getBalance();
+		Double carolOriginal = carolBefore.getBalance();
+
+		System.out.println("\nAttempting transfer of $300 from Alice to Carol...");
+		System.out.println("(This will fail AFTER deducting from Alice!)");
+
+		try {
+			bankService.transferWithFailure(
+					alice.getId(), carol.getId(), 300.0);
+		} catch (Exception e) {
+			System.out.println("\n Exception caught: " + e.getMessage());
+		}
+
+		System.out.println("\n AFTER failed transfer:");
+		bankService.printBalances(alice.getId(), carol.getId());
+
+		// Verify rollback worked
+		Account aliceAfter = bankService.getAccount(alice.getId());
+		Account carolAfter = bankService.getAccount(carol.getId());
+
+		System.out.println("\n🔍 ROLLBACK VERIFICATION:");
+		System.out.println("  Alice original: $" + aliceOriginal);
+		System.out.println("  Alice after   : $" + aliceAfter.getBalance());
+		System.out.println("  Alice restored: "
+				+ (aliceOriginal.equals(aliceAfter.getBalance())
+				? " YES!" : " NO!"));
+
+		System.out.println("\n  Carol original: $" + carolOriginal);
+		System.out.println("  Carol after   : $" + carolAfter.getBalance());
+		System.out.println("  Carol unchanged: "
+				+ (carolOriginal.equals(carolAfter.getBalance())
+				? " YES!" : " NO!"));
+
+		if (aliceOriginal.equals(aliceAfter.getBalance())
+				&& carolOriginal.equals(carolAfter.getBalance())) {
+			System.out.println("\n TRANSACTION ROLLBACK WORKED PERFECTLY!");
+			System.out.println("   Both accounts are in their original state!");
+		} else {
+			System.out.println("\n ROLLBACK DID NOT WORK!");
+			System.out.println("   Check @Transactional annotation!");
+		}
+
+		// ── ERROR CASES ──
+		System.out.println("\n--- Other Error Cases ---");
+
+		// Transfer to same account
+		try {
+			bankService.transfer(alice.getId(), alice.getId(), 100.0);
+		} catch (Exception e) {
+			System.out.println("Same account: " + e.getMessage());
+		}
+
+		// Negative amount
+		try {
+			bankService.transfer(alice.getId(), bob.getId(), -50.0);
+		} catch (Exception e) {
+			System.out.println("Negative amount: " + e.getMessage());
+		}
+
+		// Account not found
+		try {
+			bankService.transfer(9999, bob.getId(), 100.0);
+		} catch (Exception e) {
+			System.out.println("Not found: " + e.getMessage());
+		}
+
 	}
-	
-	
 }
