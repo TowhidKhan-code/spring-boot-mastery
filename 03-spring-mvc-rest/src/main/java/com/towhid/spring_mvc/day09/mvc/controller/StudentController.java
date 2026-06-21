@@ -3,6 +3,7 @@ package com.towhid.spring_mvc.day09.mvc.controller;
 import com.towhid.spring_mvc.day09.mvc.dto.StudentRequest;
 import com.towhid.spring_mvc.day09.mvc.dto.StudentResponse;
 import com.towhid.spring_mvc.day09.mvc.service.StudentService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,7 @@ public class StudentController {
     // @RequestBody = read JSON from request body
     // Spring converts JSON → StudentRequest object
     public ResponseEntity<StudentResponse> createStudent(
-            @RequestBody StudentRequest request) {
+           @Valid @RequestBody StudentRequest request) {
         StudentResponse response =
                 studentService.createStudent(request);
 
@@ -87,7 +88,7 @@ public class StudentController {
     @PutMapping("/{id}")
     public ResponseEntity<StudentResponse> updateStudent(
             @PathVariable Integer id,
-            @RequestBody StudentRequest request) {
+           @Valid @RequestBody StudentRequest request) {
 
         StudentResponse response =
                 studentService.updateStudent(id, request);
@@ -130,7 +131,9 @@ public class StudentController {
     //  → uses @RequestParam
     // ─────────────────────────────────────────
     @GetMapping("/top")
-    public ResponseEntity<List<StudentResponse>> getStudentsWithGradesGreaterThan(@RequestParam Double grade){
+    public ResponseEntity<List<StudentResponse>>
+            getStudentsWithGradesGreaterThan(
+                    @RequestParam Double grade){
         List<StudentResponse> students = studentService.getStudentsWithGradesGreaterThan(grade);
         return ResponseEntity.ok(students);
     }

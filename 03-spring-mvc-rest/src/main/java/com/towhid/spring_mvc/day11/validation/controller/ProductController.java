@@ -5,12 +5,15 @@ import com.towhid.spring_mvc.day11.validation.dto.response.ApiResponse;
 import com.towhid.spring_mvc.day11.validation.dto.response.ProductResponse;
 import com.towhid.spring_mvc.day11.validation.service.ProductService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Validated // ← IMPORTANT for @PathVariable and @RequestParam validation
 @RestController
 @RequestMapping("/api/v1/products")
 // v1 = version 1 of our API
@@ -71,7 +74,9 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductResponse>>
     getProductById(
-            @PathVariable Integer id) {
+            @PathVariable
+            @Min(value = 1, message = "ID must be positive")
+            Integer id) {
 
         // if not found → ResourceNotFoundException
         // → GlobalExceptionHandler → 404 response
@@ -92,7 +97,9 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductResponse>>
     updateProduct(
-            @PathVariable Integer id,
+            @PathVariable
+            @Min(value = 1, message = "ID must be positive")
+            Integer id,
             @Valid @RequestBody ProductRequest request) {
 
         ProductResponse product =
@@ -112,13 +119,36 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>>
     deleteProduct(
-            @PathVariable Integer id) {
+            @PathVariable
+            @Min(value = 1, message = "ID must be positive")
+            Integer id) {
 
         productService.deleteProduct(id);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Product deleted successfully"
+                )
+        );
+    }
+
+    // Practice Task 2
+    @GetMapping("/{id}/check-stock")
+    public ResponseEntity<ApiResponse<String>>
+    checkStock(
+            @PathVariable
+            @Min(value = 1, message = "ID must be positive")
+            Integer id,
+
+            @RequestParam
+            @Min(value = 1, message = "Quantity must be positive")
+            Integer quantity) {
+
+        productService.checkStock(id, quantity);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Stock is sufficient"
                 )
         );
     }

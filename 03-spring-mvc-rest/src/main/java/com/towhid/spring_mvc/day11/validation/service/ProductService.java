@@ -5,6 +5,7 @@ import com.towhid.spring_mvc.day11.validation.dto.response.ProductResponse;
 import com.towhid.spring_mvc.day11.validation.entity.Product;
 import com.towhid.spring_mvc.day11.validation.exception.BadRequestException;
 import com.towhid.spring_mvc.day11.validation.exception.DuplicateResourceException;
+import com.towhid.spring_mvc.day11.validation.exception.InsufficientStockException;
 import com.towhid.spring_mvc.day11.validation.exception.ResourceNotFoundException;
 import com.towhid.spring_mvc.day11.validation.repository.ProductRepository;
 import org.springframework.stereotype.Service;
@@ -156,5 +157,16 @@ public class ProductService {
                 );
 
         productRepository.deleteById(id);
+    }
+
+    // Practice Task 2
+    @Transactional(readOnly = true)
+    public void checkStock(Integer id,Integer requestedQuantity){
+        Product existing = productRepository.findById(id)
+                .orElseThrow(()->new ResourceNotFoundException("Product","id",id));
+        if(existing.getStockQuantity() < requestedQuantity){
+            throw new InsufficientStockException(existing.getStockQuantity(), requestedQuantity);
+        }
+        System.out.println("Product stock is more than requested");
     }
 }

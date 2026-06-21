@@ -2,6 +2,8 @@ package com.towhid.spring_mvc.day11.validation.exception;
 
 import com.towhid.spring_mvc.day11.validation.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -12,55 +14,35 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
-// @RestControllerAdvice =
-// @ControllerAdvice + @ResponseBody
-// Watches ALL controllers
-// Catches exceptions from ANY controller
-// Handles them in ONE place
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     // ─────────────────────────────────────────
-    // 1. VALIDATION ERRORS
-    // Thrown when @Valid fails
-    // Returns 400 Bad Request
+    // 1. REQUEST BODY VALIDATION ERRORS
+    // @Valid on DTOs
     // ─────────────────────────────────────────
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    // @ExceptionHandler = "when THIS exception
-    // is thrown anywhere, run THIS method"
     public ResponseEntity<ErrorResponse>
     handleValidationErrors(
             MethodArgumentNotValidException ex,
             HttpServletRequest request) {
-        // HttpServletRequest = info about
-        // the HTTP request that caused error
 
-        // collect all field errors into a map
         Map<String, String> errors = new HashMap<>();
 
-        // ex.getBindingResult() = all validation results
-        // getFieldErrors() = list of failed fields
         ex.getBindingResult()
                 .getFieldErrors()
                 .forEach((FieldError error) -> {
-                    // error.getField() = which field failed
-                    // "name", "price", "email"
                     String field = error.getField();
-
-                    // error.getDefaultMessage() = your message
-                    // "Name cannot be blank"
                     String message = error.getDefaultMessage();
-
                     errors.put(field, message);
-                    // { "name": "Name cannot be blank" }
                 });
 
         ErrorResponse response = new ErrorResponse(
                 400,
                 "Validation Failed",
                 "Input validation failed. Check errors.",
-                errors,                    // field errors map
-                request.getRequestURI()    // which URL
+                errors,
+                request.getRequestURI()
         );
 
         return ResponseEntity
@@ -69,8 +51,47 @@ public class GlobalExceptionHandler {
     }
 
     // ─────────────────────────────────────────
-    // 2. RESOURCE NOT FOUND
-    // Returns 404 Not Found
+    // Practice Task 3
+    // 2. URL PARAMETER VALIDATION ERRORS
+    // @PathVariable / @RequestParam validation
+    // ─────────────────────────────────────────
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse>
+    handleConstraintViolation(
+            ConstraintViolationException ex,
+            HttpServletRequest request) {
+
+        Map<String, String> errors = new HashMap<>();
+
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            // Example property path:
+            // getProductById.id
+            // searchProducts.keyword
+            String fullPath = violation.getPropertyPath().toString();
+
+            // Extract only the parameter name after the last dot
+            String field = fullPath.contains(".")
+                    ? fullPath.substring(fullPath.lastIndexOf('.') + 1)
+                    : fullPath;
+
+            errors.put(field, violation.getMessage());
+        }
+
+        ErrorResponse response = new ErrorResponse(
+                400,
+                "Validation Failed",
+                "URL parameter validation failed. Check errors.",
+                errors,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    // ─────────────────────────────────────────
+    // 3. RESOURCE NOT FOUND
     // ─────────────────────────────────────────
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse>
@@ -82,7 +103,6 @@ public class GlobalExceptionHandler {
                 404,
                 "Not Found",
                 ex.getMessage(),
-                // "Product not found with id: '5'"
                 request.getRequestURI()
         );
 
@@ -92,8 +112,7 @@ public class GlobalExceptionHandler {
     }
 
     // ─────────────────────────────────────────
-    // 3. DUPLICATE RESOURCE
-    // Returns 409 Conflict
+    // 4. DUPLICATE RESOURCE
     // ─────────────────────────────────────────
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ErrorResponse>
@@ -114,8 +133,7 @@ public class GlobalExceptionHandler {
     }
 
     // ─────────────────────────────────────────
-    // 4. BAD REQUEST
-    // Returns 400 Bad Request
+    // 5. BAD REQUEST
     // ─────────────────────────────────────────
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponse>
@@ -136,8 +154,26 @@ public class GlobalExceptionHandler {
     }
 
     // ─────────────────────────────────────────
-    // 5. ILLEGAL ARGUMENT
-    // Returns 400 Bad Request
+    // Practice Task 2
+    // 6. INSUFFICIENT STOCK
+    // ─────────────────────────────────────────
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<ErrorResponse>
+    handleInsufficientStock(
+            InsufficientStockException ex,
+            HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                400,
+                "Insufficient Stock",
+                ex.getMessage(),
+                request.getRequestURI());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
+    }
+
+    // ─────────────────────────────────────────
+    // 7. ILLEGAL ARGUMENT
     // ─────────────────────────────────────────
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse>
@@ -158,8 +194,7 @@ public class GlobalExceptionHandler {
     }
 
     // ─────────────────────────────────────────
-    // 6. CATCH ALL - any other exception
-    // Returns 500 Internal Server Error
+    // 8. CATCH ALL
     // ─────────────────────────────────────────
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse>
@@ -167,18 +202,15 @@ public class GlobalExceptionHandler {
             Exception ex,
             HttpServletRequest request) {
 
+        System.err.println("Unexpected error: "
+                + ex.getMessage());
+
         ErrorResponse response = new ErrorResponse(
                 500,
                 "Internal Server Error",
-                // don't expose internal error details
-                // to client in production!
                 "Something went wrong. Please try again.",
                 request.getRequestURI()
         );
-
-        // log the real error for developers
-        System.err.println("Unexpected error: "
-                + ex.getMessage());
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
