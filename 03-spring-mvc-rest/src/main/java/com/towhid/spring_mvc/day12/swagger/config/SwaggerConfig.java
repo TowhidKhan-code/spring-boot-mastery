@@ -29,7 +29,7 @@ public class SwaggerConfig {
 
                         // your contact info
                         .contact(new Contact()
-                                .name("Towhid Islam")
+                                .name("Towhid Khan")
                                 .email("towhid@email.com"))
 
                         // license (optional)

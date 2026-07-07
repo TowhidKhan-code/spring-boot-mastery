@@ -4,6 +4,11 @@ import com.towhid.spring_mvc.day09.mvc.dto.StudentRequest;
 import com.towhid.spring_mvc.day09.mvc.dto.StudentResponse;
 import com.towhid.spring_mvc.day09.mvc.entity.Student;
 import com.towhid.spring_mvc.day09.mvc.repository.StudentRepository;
+import com.towhid.spring_mvc.day09.mvc.dto.PagedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -176,4 +181,66 @@ public class StudentService {
     }
 
 
+    // ─────────────────────────────────────────
+    // DAY 12 TASK 2 :
+    // ─────────────────────────────────────────
+    // CREATE PAGEABLE — helper
+    // ─────────────────────────────────────────
+    private Pageable createPageable(
+            int page, int size,
+            String sortBy, String direction) {
+
+        Sort.Direction dir = direction.equalsIgnoreCase("desc")
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        Sort sort = Sort.by(dir, sortBy);
+
+        return PageRequest.of(page, size, sort);
+    }
+
+    // ─────────────────────────────────────────
+    // CONVERT Page<Student> → PagedResponse
+    // ─────────────────────────────────────────
+    private PagedResponse<StudentResponse> toPagedResponse(
+            Page<Student> page) {
+
+        PagedResponse<StudentResponse> response =
+                new PagedResponse<>();
+
+        response.setContent(
+                page.getContent()
+                        .stream()
+                        .map(this::toResponse)
+                        .toList()
+        );
+
+        response.setPageNumber(page.getNumber());
+        response.setPageSize(page.getSize());
+        response.setTotalElements(page.getTotalElements());
+        response.setTotalPages(page.getTotalPages());
+        response.setFirst(page.isFirst());
+        response.setLast(page.isLast());
+        response.setHasNext(page.hasNext());
+        response.setHasPrevious(page.hasPrevious());
+
+        return response;
+    }
+
+    // ─────────────────────────────────────────
+    // GET ALL — PAGINATED
+    // ─────────────────────────────────────────
+    @Transactional(readOnly = true)
+    public PagedResponse<StudentResponse> getAllStudentsPaginated(
+            int page, int size,
+            String sortBy, String direction) {
+
+        Pageable pageable = createPageable(
+                page, size, sortBy, direction);
+
+        Page<Student> studentPage =
+                studentRepository.findAll(pageable);
+
+        return toPagedResponse(studentPage);
+    }
 }
